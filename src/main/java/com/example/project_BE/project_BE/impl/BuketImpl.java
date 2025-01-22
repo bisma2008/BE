@@ -84,82 +84,45 @@ public class BuketImpl implements BuketService {
     }
 
     @Override
-    public BuketDTO editBuketDTO(Long id, BuketDTO buketDTO, MultipartFile file) {
-        Buket buket = buketRepository.findById(id)
-                .orElseThrow(() -> new NotFoundException("Buket dengan ID " + id + " tidak ditemukan"));
+    public BuketDTO editBuketDTO(Long id, Long idAdmin, BuketDTO buketDTO) throws IOException {
+        // Cari buket berdasarkan ID
+        Buket existingBuket = buketRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Buket tidak ditemukan"));
 
-        String oldFotoUrl = buket.getFotoUrl(); // Menyimpan URL foto lama
+        // Cari admin berdasarkan ID
+        Admin admin = adminRepository.findById(idAdmin)
+                .orElseThrow(() -> new NotFoundException("Admin dengan ID " + idAdmin + " tidak ditemukan"));
 
-        // Update buket details (namaBuket and hargaBuket)
-        buket.setNamaBuket(buketDTO.getNamaBuket());
-        buket.setHargaBuket(buketDTO.getHargaBuket());
+        // Update data buket
+        existingBuket.setNamaBuket(buketDTO.getNamaBuket());
+        existingBuket.setHargaBuket(buketDTO.getHargaBuket());
 
-        // Check if a new file is provided
-        if (file != null && !file.isEmpty()) {
-            try {
-                // Call replaceOldFoto with the MultipartFile instead of the fotoUrl String
-                String newFotoUrl = replaceOldFoto(oldFotoUrl, file);
-                buket.setFotoUrl(newFotoUrl); // Set foto URL baru
-            } catch (IOException e) {
-                throw new RuntimeException("Gagal mengganti foto: " + e.getMessage());
-            }
+        // Periksa apakah foto URL perlu diperbarui (jika ada foto baru)
+        if (buketDTO.getFotoUrl() != null) {
+            existingBuket.setFotoUrl(buketDTO.getFotoUrl());
         }
 
-        // Simpan buket yang sudah diperbarui
-        try {
-            Buket savedBuket = buketRepository.save(buket);
+        existingBuket.setAdmin(admin);
 
-            BuketDTO result = new BuketDTO();
-            result.setId(savedBuket.getId());
-            result.setIdAdmin(savedBuket.getAdmin().getId());
-            result.setNamaBuket(savedBuket.getNamaBuket());
-            result.setHargaBuket(savedBuket.getHargaBuket());
-            result.setFotoUrl(savedBuket.getFotoUrl());
-            return result;
+        // Simpan perubahan
+        Buket updatedBuket = buketRepository.save(existingBuket);
 
-        } catch (Exception e) {
-            System.err.println("Error saat mengedit Buket: " + e.getMessage());
-            e.printStackTrace();
-            throw new RuntimeException("Gagal mengedit Buket");
-        }
+        // Map ke DTO
+        BuketDTO result = new BuketDTO();
+        result.setId(updatedBuket.getId());
+        result.setIdAdmin(admin.getId());
+        result.setNamaBuket(updatedBuket.getNamaBuket());
+        result.setHargaBuket(updatedBuket.getHargaBuket());
+        result.setFotoUrl(updatedBuket.getFotoUrl());
+
+        return result;
     }
+
 
     @Override
     public void deleteBuket(Long id) throws IOException {
         buketRepository.deleteById(id);
     }
-
-    public String replaceOldFoto(String oldFotoUrl, MultipartFile file) throws IOException {
-        // Jika ada foto lama, kita ambil ID atau nama file dari URL lama (misalnya)
-        String fileId = extractFileIdFromUrl(oldFotoUrl);
-
-        // Kirim file baru dengan menggunakan API upload yang sama
-        String uploadUrl = BASE_URL + "/uploadFoto";
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.MULTIPART_FORM_DATA);
-
-        MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
-        body.add("file", file.getResource());
-        body.add("fileId", fileId);  // Mengirim fileId untuk menggantikan file lama
-
-        HttpEntity<MultiValueMap<String, Object>> requestEntity = new HttpEntity<>(body, headers);
-
-        ResponseEntity<String> response = restTemplate.exchange(uploadUrl, HttpMethod.POST, requestEntity, String.class);
-
-        if (response.getStatusCode() == HttpStatus.OK) {
-            return extractFileUrlFromResponse(response.getBody());
-        } else {
-            throw new IOException("Failed to upload and replace file: " + response.getStatusCode());
-        }
-    }
-
-    private String extractFileIdFromUrl(String url) {
-        // Logika untuk mengekstrak file ID dari URL (tergantung pada format URL yang diberikan)
-        // Misalnya, jika URL-nya berbentuk: "https://s3.lynk2.co/somepath/fileId12345.jpg"
-        String[] parts = url.split("/");
-        return parts[parts.length - 1];  // Ambil bagian terakhir yang mengandung ID atau nama file
-    }
-
 
     public String uploadFoto(MultipartFile file) throws IOException {
         String uploadUrl = BASE_URL + "/uploadFoto";

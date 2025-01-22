@@ -21,19 +21,12 @@ public interface BuketService {
 
     // Mendapatkan buket berdasarkan ID
     Optional<Buket> getBuketById(Long id);
-
     // Menambah buket
     BuketDTO tambahBuketDTO(Long idAdmin, BuketDTO buketDTO);
-
-    // Mengedit buket berdasarkan ID dengan MultipartFile
-    BuketDTO editBuketDTO(Long id, BuketDTO buketDTO, MultipartFile file);
-
+    BuketDTO editBuketDTO(Long id, Long idAdmin, BuketDTO buketDTO) throws IOException;
     // Menghapus buket berdasarkan ID
     void deleteBuket(Long id) throws IOException;
 
     // Upload foto baru
     String uploadFoto(MultipartFile file) throws IOException;
-
-    // Replace foto lama dengan foto baru
-    String replaceOldFoto(String oldFotoUrl, MultipartFile file) throws IOException;
 }
