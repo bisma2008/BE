@@ -57,7 +57,6 @@
 			<version>0.9.1</version>
 		</dependency>
 
-
 		<!-- Dependensi untuk MySQL Connector -->
 		<dependency>
 			<groupId>com.mysql</groupId>
@@ -79,7 +78,6 @@
 			<scope>test</scope>
 		</dependency>
 
-
 		<dependency>
 			<groupId>org.springframework</groupId>
 			<artifactId>spring-websocket</artifactId>
@@ -89,6 +87,13 @@
 			<groupId>org.springframework</groupId>
 			<artifactId>spring-messaging</artifactId>
 			<version>5.3.29</version> <!-- Match with your Spring version -->
+		</dependency>
+
+		<!-- Dependensi untuk Amazon S3 -->
+		<dependency>
+			<groupId>software.amazon.awssdk</groupId>
+			<artifactId>s3</artifactId>
+			<version>2.20.2</version>
 		</dependency>
 	</dependencies>
 

@@ -3,8 +3,10 @@ package com.example.project_BE.project_BE.Controller;
 import com.example.project_BE.project_BE.DTO.BuketDTO;
 import com.example.project_BE.project_BE.model.Buket;
 import com.example.project_BE.project_BE.servise.BuketService;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.util.List;
@@ -35,30 +37,45 @@ public class BuketController {
 
     @GetMapping("/buket/getById/{id}")
     public ResponseEntity<Buket> getBuketById(@PathVariable Long id) {
-        System.out.println("Request received for bucket ID: " + id);  // Log request ID
         Optional<Buket> buket = buketService.getBuketById(id);
         return buket.map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.notFound().build());
     }
 
-
     @PostMapping("/buket/tambah/{idAdmin}")
     public ResponseEntity<BuketDTO> tambahBuket(
             @PathVariable Long idAdmin,
-            @RequestBody BuketDTO buketDTO) {
+            @RequestParam("buket") String buketJson,
+            @RequestParam("file") MultipartFile file) throws IOException {
+
+        // Convert JSON string to DTO
+        ObjectMapper objectMapper = new ObjectMapper();
+        BuketDTO buketDTO = objectMapper.readValue(buketJson, BuketDTO.class);
+
+        // Upload the photo and set the URL in DTO
+        String fotoUrl = buketService.uploadFoto(file);
+        buketDTO.setFotoUrl(fotoUrl);
+
+        // Save the Buket
         BuketDTO savedBuket = buketService.tambahBuketDTO(idAdmin, buketDTO);
         return ResponseEntity.ok(savedBuket);
     }
 
-    @PutMapping(value = "/buket/editById/{id}")
-    public ResponseEntity<BuketDTO> editBuket(
+    @PutMapping("/buket/edit/{id}")
+    public ResponseEntity<BuketDTO> editBuketById(
             @PathVariable Long id,
-            @RequestParam Long idAdmin,
-            @RequestBody BuketDTO buketDTO) throws IOException { // Menggunakan @RequestBody untuk buketDTO
+            @RequestParam("buket") String buketJson,
+            @RequestParam(value = "file", required = false) MultipartFile file) throws IOException {
 
-        // Edit buket tanpa foto
-        BuketDTO updatedBuket = buketService.editBuketDTO(id, idAdmin, buketDTO);
+        // Convert JSON string to DTO
+        ObjectMapper objectMapper = new ObjectMapper();
+        BuketDTO buketDTO = objectMapper.readValue(buketJson, BuketDTO.class);
+
+        // Pass the MultipartFile to the service method
+        BuketDTO updatedBuket = buketService.editBuketDTO(id, buketDTO, file);
+
         return ResponseEntity.ok(updatedBuket);
     }
+
 
     @DeleteMapping("/buket/delete/{id}")
     public ResponseEntity<Void> deleteBuket(@PathVariable Long id) throws IOException {

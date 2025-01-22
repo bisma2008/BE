@@ -16,18 +16,22 @@ public class Buket {
     @Column(name = "harga_buket")
     private Double hargaBuket;
 
+    @Column(name = "foto_url") // Properti fotoUrl
+    private String fotoUrl;
+
     @ManyToOne
     @JoinColumn(name = "id_admin", nullable = false)
     private Admin admin;
 
-    public Buket(Long id, Admin admin, String namaBuket, Double hargaBuket) {
+    public Buket() {
+    }
+
+    public Buket(Long id, Admin admin, String namaBuket, Double hargaBuket, String fotoUrl) {
         this.id = id;
         this.admin = admin;
         this.namaBuket = namaBuket;
         this.hargaBuket = hargaBuket;
-    }
-
-    public Buket() {
+        this.fotoUrl = fotoUrl;
     }
 
     public Long getId() {
@@ -52,6 +56,14 @@ public class Buket {
 
     public void setHargaBuket(Double hargaBuket) {
         this.hargaBuket = hargaBuket;
+    }
+
+    public String getFotoUrl() {
+        return fotoUrl;
+    }
+
+    public void setFotoUrl(String fotoUrl) {
+        this.fotoUrl = fotoUrl;
     }
 
     public Admin getAdmin() {

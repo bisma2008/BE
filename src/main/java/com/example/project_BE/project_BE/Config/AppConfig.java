@@ -9,13 +9,12 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 @Configuration
 @EnableWebMvc
 public class AppConfig implements WebMvcConfigurer {
-
     @Override
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/**")
-                .allowedOrigins("*")
+                .allowedOrigins("http://localhost:5173")  // Frontend port
                 .allowedMethods("GET", "POST", "PUT", "DELETE")
-                .allowedHeaders("X-Requested-With", "Content-Type", "Origin", "Authorization", "Accept", "Client-Security-Token", "Accept-Encoding")
+                .allowedHeaders("X-Requested-With", "Content-Type", "Origin", "Authorization", "Accept")
                 .maxAge(3600);
     }
 }
