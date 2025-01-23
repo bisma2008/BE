@@ -18,12 +18,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.Optional;
 
 @Service
 public class BuketImpl implements BuketService {
 
-    private static final String BASE_URL = "https://s3.lynk2.co/api/s3";
+    private static final String BASE_URL = "https://s3.lynk2.co/api/s3/test";
     private final BuketRepository buketRepository;
     private final AdminRepository adminRepository;
     private final RestTemplate restTemplate = new RestTemplate();
@@ -39,24 +38,30 @@ public class BuketImpl implements BuketService {
     }
 
     @Override
-    public List<Buket> getAllByAdmin() {
-        return BuketService.super.getAllByAdmin();
-    }
-
-    @Override
     public List<Buket> getAllByAdmin(Long idAdmin) {
         return buketRepository.findByAdminId(idAdmin);
     }
 
     @Override
-    public Optional<Buket> getBuketById(Long id) {
-        return buketRepository.findById(id);
+    public BuketDTO getBuketByIdDTO(Long id) throws NotFoundException {
+        Buket buket = buketRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Buket tidak ditemukan dengan ID: " + id));
+
+        BuketDTO buketDTO = new BuketDTO();
+        buketDTO.setId(buket.getId());
+        buketDTO.setIdAdmin(buket.getAdmin().getId());
+        buketDTO.setNamaBuket(buket.getNamaBuket());
+        buketDTO.setHargaBuket(buket.getHargaBuket());
+        buketDTO.setFotoUrl(buket.getFotoUrl());
+
+        return buketDTO;
     }
+
 
     @Override
     public BuketDTO tambahBuketDTO(Long idAdmin, BuketDTO buketDTO) {
         Admin admin = adminRepository.findById(idAdmin)
-                .orElseThrow(() -> new NotFoundException("Admin dengan ID " + idAdmin + " tidak ditemukan"));
+                .orElseThrow(() -> new NotFoundException("Admin tidak ditemukan"));
 
         Buket buket = new Buket();
         buket.setAdmin(admin);
@@ -64,68 +69,37 @@ public class BuketImpl implements BuketService {
         buket.setHargaBuket(buketDTO.getHargaBuket());
         buket.setFotoUrl(buketDTO.getFotoUrl());
 
-        try {
-            Buket savedBuket = buketRepository.save(buket);
-            System.out.println("Buket berhasil disimpan ke database dengan ID: " + savedBuket.getId());
-
-            BuketDTO result = new BuketDTO();
-            result.setId(savedBuket.getId());
-            result.setIdAdmin(admin.getId());
-            result.setNamaBuket(savedBuket.getNamaBuket());
-            result.setHargaBuket(savedBuket.getHargaBuket());
-            result.setFotoUrl(savedBuket.getFotoUrl());
-            return result;
-
-        } catch (Exception e) {
-            System.err.println("Error saat menyimpan Buket: " + e.getMessage());
-            e.printStackTrace();
-            throw new RuntimeException("Gagal menyimpan Buket");
-        }
+        return mapToDTO(buketRepository.save(buket));
     }
 
     @Override
     public BuketDTO editBuketDTO(Long id, Long idAdmin, BuketDTO buketDTO) throws IOException {
-        // Cari buket berdasarkan ID
         Buket existingBuket = buketRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Buket tidak ditemukan"));
 
-        // Cari admin berdasarkan ID
         Admin admin = adminRepository.findById(idAdmin)
-                .orElseThrow(() -> new NotFoundException("Admin dengan ID " + idAdmin + " tidak ditemukan"));
+                .orElseThrow(() -> new NotFoundException("Admin tidak ditemukan"));
 
-        // Update data buket
         existingBuket.setNamaBuket(buketDTO.getNamaBuket());
         existingBuket.setHargaBuket(buketDTO.getHargaBuket());
 
-        // Periksa apakah foto URL perlu diperbarui (jika ada foto baru)
         if (buketDTO.getFotoUrl() != null) {
             existingBuket.setFotoUrl(buketDTO.getFotoUrl());
         }
 
         existingBuket.setAdmin(admin);
 
-        // Simpan perubahan
-        Buket updatedBuket = buketRepository.save(existingBuket);
-
-        // Map ke DTO
-        BuketDTO result = new BuketDTO();
-        result.setId(updatedBuket.getId());
-        result.setIdAdmin(admin.getId());
-        result.setNamaBuket(updatedBuket.getNamaBuket());
-        result.setHargaBuket(updatedBuket.getHargaBuket());
-        result.setFotoUrl(updatedBuket.getFotoUrl());
-
-        return result;
+        return mapToDTO(buketRepository.save(existingBuket));
     }
-
 
     @Override
     public void deleteBuket(Long id) throws IOException {
         buketRepository.deleteById(id);
     }
 
+    @Override
     public String uploadFoto(MultipartFile file) throws IOException {
-        String uploadUrl = BASE_URL + "/uploadFoto";
+        String uploadUrl = BASE_URL;
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.MULTIPART_FORM_DATA);
 
@@ -139,7 +113,7 @@ public class BuketImpl implements BuketService {
         if (response.getStatusCode() == HttpStatus.OK) {
             return extractFileUrlFromResponse(response.getBody());
         } else {
-            throw new IOException("Failed to upload file: " + response.getStatusCode());
+            throw new IOException("Gagal mengunggah file: " + response.getStatusCode());
         }
     }
 
@@ -148,5 +122,15 @@ public class BuketImpl implements BuketService {
         JsonNode jsonResponse = mapper.readTree(responseBody);
         JsonNode dataNode = jsonResponse.path("data");
         return dataNode.path("url_file").asText();
+    }
+
+    private BuketDTO mapToDTO(Buket buket) {
+        BuketDTO dto = new BuketDTO();
+        dto.setId(buket.getId());
+        dto.setIdAdmin(buket.getAdmin().getId());
+        dto.setNamaBuket(buket.getNamaBuket());
+        dto.setHargaBuket(buket.getHargaBuket());
+        dto.setFotoUrl(buket.getFotoUrl());
+        return dto;
     }
 }

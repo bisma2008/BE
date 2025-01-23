@@ -1,9 +1,11 @@
 package com.example.project_BE.project_BE.Controller;
 
 import com.example.project_BE.project_BE.DTO.BuketDTO;
+import com.example.project_BE.project_BE.exception.NotFoundException;
 import com.example.project_BE.project_BE.model.Buket;
 import com.example.project_BE.project_BE.servise.BuketService;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -36,31 +38,31 @@ public class BuketController {
     }
 
     @GetMapping("/buket/getById/{id}")
-    public ResponseEntity<Buket> getBuketById(@PathVariable Long id) {
-        Optional<Buket> buket = buketService.getBuketById(id);
-        return buket.map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.notFound().build());
+    public ResponseEntity<BuketDTO> getBuketById(@PathVariable Long id) {
+        try {
+            BuketDTO buketDTO = buketService.getBuketByIdDTO(id);
+            return ResponseEntity.ok(buketDTO);
+        } catch (NotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
+        }
     }
 
-        // Make sure multipart uploads are handled
-        @PostMapping("/buket/tambah/{idAdmin}")
-        public ResponseEntity<BuketDTO> tambahBuket(
-                @PathVariable Long idAdmin,
-                @RequestParam("buket") String buketJson,
-                @RequestParam("file") MultipartFile file) throws IOException {
 
-            // Convert JSON string to DTO
-            ObjectMapper objectMapper = new ObjectMapper();
-            BuketDTO buketDTO = objectMapper.readValue(buketJson, BuketDTO.class);
+    // Handle adding Buket without uploadFoto
+    @PostMapping("/buket/tambah/{idAdmin}")
+    public ResponseEntity<BuketDTO> tambahBuket(
+            @PathVariable Long idAdmin,
+            @RequestBody BuketDTO buketDTO) {
 
-            // Upload the photo and set the URL in DTO
-            String fotoUrl = buketService.uploadFoto(file);
-            buketDTO.setFotoUrl(fotoUrl);
+        System.out.println("Data diterima di backend: " + buketDTO);
 
-            // Save the Buket
-            BuketDTO savedBuket = buketService.tambahBuketDTO(idAdmin, buketDTO);
-            return ResponseEntity.ok(savedBuket);
-        }
+        BuketDTO savedBuket = buketService.tambahBuketDTO(idAdmin, buketDTO);
+        return ResponseEntity.ok(savedBuket);
+    }
 
+    // Handle editing Buket and uploading a new photo if provided
     @PutMapping(value = "/buket/editById/{id}")
     public ResponseEntity<BuketDTO> editBuket(
             @PathVariable Long id,
