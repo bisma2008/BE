@@ -63,24 +63,28 @@ public class BuketController {
     }
 
     // Handle editing Buket and uploading a new photo if provided
-    @PutMapping(value = "/buket/editById/{id}")
+    @PutMapping(value = "/buket/editById/{id}", consumes = "multipart/form-data")
     public ResponseEntity<BuketDTO> editBuket(
             @PathVariable Long id,
             @RequestParam Long idAdmin,
-            @RequestParam(required = false) MultipartFile file, // Handle optional file input
-            @RequestBody BuketDTO buketDTO) throws IOException {
+            @RequestPart(required = false) MultipartFile file, // Untuk file opsional
+            @RequestPart("data") String data // Untuk JSON dalam bentuk String
+    ) throws IOException {
+        // Parse JSON ke BuketDTO
+        ObjectMapper objectMapper = new ObjectMapper();
+        BuketDTO buketDTO = objectMapper.readValue(data, BuketDTO.class);
 
-        // If there is a new file, upload it
+        // Jika ada file, upload dan set URL ke DTO
         if (file != null && !file.isEmpty()) {
-            String fotoUrl = buketService.uploadFoto(file); // Upload the new image and get URL
-            buketDTO.setFotoUrl(fotoUrl); // Set the new photo URL
+            String fotoUrl = buketService.uploadFoto(file);
+            buketDTO.setFotoUrl(fotoUrl);
         }
 
-        // Edit the Buket without a new photo if no file is provided
+        // Proses edit Buket
         BuketDTO updatedBuket = buketService.editBuketDTO(id, idAdmin, buketDTO);
-
         return ResponseEntity.ok(updatedBuket);
     }
+
 
     @DeleteMapping("/buket/delete/{id}")
     public ResponseEntity<Void> deleteBuket(@PathVariable Long id) throws IOException {
